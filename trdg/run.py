@@ -120,7 +120,7 @@ def parse_arguments():
         type=int,
         nargs="?",
         help="Define the number of processes to use for image generation",
-        default=None,
+        default=1,
     )
     parser.add_argument(
         "-e",
@@ -386,14 +386,14 @@ def main():
         labels = os.path.join(args.output_dir, "labels.csv")
         if os.path.exists(labels) and os.path.getsize(labels):
             with open(labels) as f:
-                last_line = deque(f, 1)[0]
+                last_line = f.readlines()[-1]
                 start = int(last_line.split(".")[0]) + 1
         else:
             print("Cannot proceed generation due to invalid parameters or missing file \"labels.csv\". "
                   "Starting generation from scratch.")
 
     if start >= args.count:
-        print(f"There are {args.count} images generated already.")
+        print(f"There are {start} images generated already.")
         exit()
 
     # Creating word list

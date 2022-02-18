@@ -32,7 +32,7 @@ The path (`/output/path/`) must be absolute.
 
 ## New
 - Add `--from_characters` argument to specify a set of characters to be used for generation. Please make sure they're supported by the fonts.
-- Add `--random_seed` argument to initialize the random number generator for reating strings from dictionary or generating random character sequence.
+- Add `--random_seed` argument to initialize the random number generator for reading strings from dictionary or generating random character sequence.
 - Add `--proceed` argument to continue generation from the last created image. Only works with generating random character sequence.
 - Add `--stroke_width` argument to set the width of the text stroke (Thank you [@SunHaozhe](https://github.com/SunHaozhe))
 - Add `--stroke_fill` argument to set the color of the text contour if stroke > 0 (Thank you [@SunHaozhe](https://github.com/SunHaozhe))
