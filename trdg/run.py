@@ -8,6 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import random as rnd
 import string
 import sys
+from collections import deque
 from multiprocessing import Pool
 
 from tqdm import tqdm
@@ -114,11 +115,11 @@ def parse_arguments():
         default=32,
     )
     parser.add_argument(
-        "-t",
-        "--thread_count",
+        "-cpu",
+        "--cpu_count",
         type=int,
         nargs="?",
-        help="Define the number of thread to use for image generation",
+        help="Define the number of processes to use for image generation",
         default=1,
     )
     parser.add_argument(
@@ -339,6 +340,28 @@ def parse_arguments():
         help="Define the image mode to be used. RGB is default, L means 8-bit grayscale images, 1 means 1-bit binary images stored with one pixel per byte, etc.",
         default="RGB",
     )
+    parser.add_argument(
+        "-rsd",
+        "--random_seed",
+        type=int,
+        nargs="?",
+        help="Define the random seed to initialize the random number generator, if want to reproduce exactly the same dataset for several times (use the same seed for that purpose).",
+        default=None,
+    )
+    parser.add_argument(
+        "-p",
+        "--proceed",
+        action="store_true",
+        help="Continue generation from the last image. Only works with -rs (generation of random sequences of chars).",
+        default=False,
+    )
+    parser.add_argument(
+        "-ch",
+        "--from_characters",
+        action="store_true",
+        help="Define characters to be used in generation, if you need specific set. Only works with -rs (generation of random sequences of chars).",
+        default=None,
+    )
     return parser.parse_args()
 
 
@@ -356,6 +379,22 @@ def main():
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+
+    # Check if need to proceed generation or start from scratch.
+    start = 0
+    if args.proceed:
+        labels = os.path.join(args.output_dir, "labels.csv")
+        if os.path.exists(labels) and os.path.getsize(labels):
+            with open(labels) as f:
+                last_line = f.readlines()[-1]
+                start = int(last_line.split(".")[0]) + 1
+        else:
+            print("Cannot proceed generation due to invalid parameters or missing file \"labels.csv\". "
+                  "Starting generation from scratch.")
+
+    if start >= args.count:
+        print(f"There are {start} images generated already.")
+        exit()
 
     # Creating word list
     if args.dict:
@@ -398,7 +437,9 @@ def main():
             args.include_letters,
             args.include_numbers,
             args.include_symbols,
+            args.from_characters,
             args.language,
+            args.random_seed,
         )
         # Set a name format compatible with special characters automatically if they are used
         if args.include_symbols or True not in (
@@ -409,7 +450,7 @@ def main():
             args.name_format = 2
     else:
         strings = create_strings_from_dict(
-            args.length, args.random, args.count, lang_dict
+            args.length, args.random, args.count, lang_dict, args.random_seed
         )
 
     if args.language == "ar":
@@ -428,14 +469,14 @@ def main():
 
     string_count = len(strings)
 
-    p = Pool(args.thread_count)
+    p = Pool(args.cpu_count)
     for _ in tqdm(
         p.imap_unordered(
             FakeTextDataGenerator.generate_from_tuple,
             zip(
-                [i for i in range(0, string_count)],
+                [i for i in range(start, string_count)],
                 strings,
-                [fonts[rnd.randrange(0, len(fonts))] for _ in range(0, string_count)],
+                [fonts[rnd.randrange(0, len(fonts))] for _ in range(start, string_count)],
                 [args.output_dir] * string_count,
                 [args.format] * string_count,
                 [args.extension] * string_count,
@@ -465,19 +506,24 @@ def main():
                 [args.output_bboxes] * string_count,
             ),
         ),
-        total=args.count,
+        total=(string_count - start),
     ):
         pass
     p.terminate()
-    fault_strings = os.listdir('faults')
+    try:
+        fault_strings = os.listdir('faults')
+    except FileNotFoundError:
+        fault_strings = ""
 
     if args.name_format == 2:
         # Create file with filename-to-label connections
+        mode = "w" if start == 0 else "a"
         with open(
-            os.path.join(args.output_dir, "labels.csv"), "w", encoding="utf8"
+            os.path.join(args.output_dir, "labels.csv"), mode=mode, encoding="utf8"
         ) as f:
-            f.write('filename,words\n')
-            for i in range(string_count):
+            if start == 0:
+                f.write('filename,words\n')
+            for i in range(start, string_count):
                 if str(i) + '.jpg' in fault_strings:
                     continue
                 file_name = str(i) + "." + args.extension
