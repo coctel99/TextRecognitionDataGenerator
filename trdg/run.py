@@ -358,7 +358,8 @@ def parse_arguments():
     parser.add_argument(
         "-ch",
         "--from_characters",
-        action="store_true",
+        type=str,
+        nargs="?",
         help="Define characters to be used in generation, if you need specific set. Only works with -rs (generation of random sequences of chars).",
         default=None,
     )
