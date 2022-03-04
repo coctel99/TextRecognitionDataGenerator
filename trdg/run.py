@@ -476,7 +476,7 @@ def main():
             FakeTextDataGenerator.generate_from_tuple,
             zip(
                 [i for i in range(start, string_count)],
-                strings,
+                strings[start:],
                 [fonts[rnd.randrange(0, len(fonts))] for _ in range(start, string_count)],
                 [args.output_dir] * string_count,
                 [args.format] * string_count,
