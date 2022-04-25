@@ -11,6 +11,7 @@ import sys
 from collections import deque
 from multiprocessing import Pool
 
+from fontTools.ttLib import TTFont
 from tqdm import tqdm
 
 from trdg.data_generator import FakeTextDataGenerator
@@ -422,6 +423,17 @@ def main():
             sys.exit("Cannot open font")
     else:
         fonts = load_fonts(args.language)
+
+    # Remove fonts that miss any characters from specified list
+    if args.from_characters:
+        fonts_list = fonts.copy()
+        for font in fonts_list:
+            ttfont = TTFont(font)
+            cmap_keys = set()
+            for table in ttfont['cmap'].tables:
+                cmap_keys.update(table.cmap.keys())
+            if not set(map(ord, args.from_characters)).issubset(cmap_keys):
+                fonts.remove(font)
 
     # Creating synthetic sentences (or word)
     strings = []
