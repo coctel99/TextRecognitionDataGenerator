@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 
-rm -rf faults
-mkdir faults
-python3 run.py -na 2 -rs -c 1000000 --output_dir train
-rm -rf faults
-mkdir faults
-python3 run.py -na 2 -rs -c 100 --output_dir val
+dataset_path="C:/Datasets/gen_1"
+chars="0123456789!\"#$%&'()*+,-./:;<=>?@[\]^_\`{|}~ €≥≤ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
-rm -rf faults
-mkdir faults
+rm -rf "${dataset_path}/faults"
+mkdir "${dataset_path}/faults"
+python run.py -cpu 4 -na 2 -rs -ch "${chars}" -c 10000 --output_dir "${dataset_path}/train"
+rm -rf "${dataset_path}/faults"
+mkdir "${dataset_path}/faults"
+python run.py -cpu 4 -na 2 -rs -ch "${chars}" -c 1000 --output_dir "${dataset_path}/val"
+rm -rf "${dataset_path}/faults"
+mkdir "${dataset_path}/faults"
+python run.py -cpu 4 -na 2 -rs -ch "${chars}" -c 1000 --output_dir "${dataset_path}/test"
 
-python3 run.py -na 2 -rs -c 1000 --output_dir test
-
-zip dataset.zip -r train val test
+# zip "${dataset_path}/dataset.zip" -r train val test
 
